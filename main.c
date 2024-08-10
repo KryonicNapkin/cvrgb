@@ -23,7 +23,7 @@
 c_rgb_t check_type(char* str);
 char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
 char* strinsrt(char* str, char c, size_t index);
-void display_preview(uint8_t* rgb_cols, char* str);
+void dpy_preview(uint8_t* rgb_cols, char* str);
 void free_cols_vals(char** cols_vals);
 void usage(char* prg_name);
 
@@ -71,7 +71,7 @@ main(int argc, char* argv[]) {
                 break;
         }
         if (argc > 4 && !strncmp(argv[3], "-p", 2)) {
-            display_preview(rgb_col_stuff, argv[4]);
+            dpy_preview(rgb_col_stuff, argv[4]);
         }
     } else {
         usage(PRG_NAME);
@@ -136,14 +136,15 @@ strinsrt(char* str, char c, size_t index) {
 }
 
 void 
-display_preview(rgb_val rgb_cols, char* str) {
+dpy_preview(rgb_val rgb_cols, char* str) {
     printf("fg: ");
     printf(ANSI_START_CODE "38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
-    printf("%s", str);
+    printf(" %s ", str);
     printf(ANSI_END_CODE);
     printf(" bg: ");
+    printf(ANSI_START_CODE "30m");
     printf(ANSI_START_CODE "48;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
-    printf("%s", str);
+    printf(" %s ", str);
     printf(ANSI_END_CODE "\n");
 }
 
