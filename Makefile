@@ -1,16 +1,18 @@
 CC 		= gcc
 CFLAGS  = -lm -g -Wall -Wextra
 
+include config.mk
+
 all: cvrgb
 
 cvrgb: 	
-	$(CC) $(CFLAGS) -o cvrgb main.c converts.c 
+	$(CC) $(CFLAGS) -o $@ main.c converts.c 
 
 install:
-	cp -r cvrgb /usr/local/bin/
+	cp -r cvrgb ${DESTDIR}/
 
 clean:
 	rm ./cvrgb
 
 uninstall:
-	rm -f /usr/local/bin/cvrgb
+	rm -f ${DESTDIR}/cvrgb
