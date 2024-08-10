@@ -138,13 +138,13 @@ strinsrt(char* str, char c, size_t index) {
 void 
 display_preview(rgb_val rgb_cols, char* str) {
     printf("fg: ");
-    printf(ANSI_START_CODE"38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
+    printf(ANSI_START_CODE "38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
     printf("%s", str);
     printf(ANSI_END_CODE);
     printf(" bg: ");
-    printf(ANSI_START_CODE"48;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
+    printf(ANSI_START_CODE "48;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
     printf("%s", str);
-    printf(ANSI_END_CODE"\n");
+    printf(ANSI_END_CODE "\n");
 }
 
 char**
