@@ -21,7 +21,7 @@
 #define ANSI_END_CODE   "\x1b[0m"
 
 c_rgb_t check_type(char* str);
-char** sep_str_fields(char *str, char* delim, size_t nmemb, size_t memb_size);
+char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
 char* strinsrt(char* str, char c, size_t index);
 void display_preview(uint8_t* rgb_cols, char* str);
 void free_cols_vals(char** cols_vals);
@@ -96,8 +96,8 @@ get_rgb_val(char* str) {
     }
     str += 2;
     if (type == HEXADECIMAL) {
-        char *hex_str = strinsrt(str, *delim, 2);
-        char *hex_str2 = strinsrt(hex_str, *delim, 5);
+        char* hex_str = strinsrt(str, *delim, 2);
+        char* hex_str2 = strinsrt(hex_str, *delim, 5);
         s_strs = sep_str_fields(hex_str2, delim, VALUE_FIELDS, 8);
         for (int x = 0; x < VALUE_FIELDS; ++x) {
             d_rgb[x] = any_to_dec(s_strs[x], type);
@@ -148,7 +148,7 @@ display_preview(rgb_val rgb_cols, char* str) {
 }
 
 char**
-sep_str_fields(char *str, char* delim, size_t nmemb, size_t memb_size) {
+sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size) {
     char** str_fields = malloc(nmemb * sizeof(char*));
     for (size_t i = 0; i < nmemb; ++i) {
         str_fields[i] = malloc(memb_size * sizeof(char));
@@ -164,7 +164,7 @@ sep_str_fields(char *str, char* delim, size_t nmemb, size_t memb_size) {
 }
 
 c_rgb_t 
-check_type(char *str) {
+check_type(char* str) {
     size_t len = strlen(str);
     if (!strncmp(str, "0x", 2) && len == HEX_STR_LEN) {   /* len 10 -> 0x1424fe */
         return HEXADECIMAL;
