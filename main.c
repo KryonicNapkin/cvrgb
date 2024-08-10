@@ -7,8 +7,11 @@
 
 #include "converts.h"
 
+/* Constants definition */
 #define PRG_NAME        "cvrgb"
+
 #define VALUE_FIELDS    3
+#define DELIM           ","
 
 #define DEC_STR_LEN_MIN 7 
 #define DEC_STR_LEN_MAX 13
@@ -20,17 +23,26 @@
 #define ANSI_START_CODE "\x1b["
 #define ANSI_END_CODE   "\x1b[0m"
 
+/* Function declarations */
+/* Check type */
 c_rgb_t check_type(char* str);
+/* Separate str to Red, Green and Blue fields */
 char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
+/* Insert delim into hexadecimal str to separate red, green and blue values */
 char* strinsrt(char* str, char c, size_t index);
-void dpy_preview(uint8_t* rgb_cols, char* str);
+/* Stolen implementation of itoa() function from https://www.strudel.org.uk/itoa/ ver 0.4 */
+char* itoa(int value, char* result, int base);
+/* Display the actual color in your terminal */
+void dpy_color(uint8_t* rgb_cols, char* str);
+/* Free the rgb color char arrays */
 void free_cols_vals(char** cols_vals);
+/* Check type */
 void usage(char* prg_name);
 
 int
 main(int argc, char* argv[]) {
     rgb_val rgb_col_stuff;
-    char buffer[64];
+    char *buffer = malloc(64 * sizeof(char));
     if (argc >= 3 && argv[1][0] == '-' && argv[2]) {
         char* rgb_str = strdup(argv[2]);
         rgb_col_stuff = get_rgb_val(rgb_str);
@@ -42,24 +54,39 @@ main(int argc, char* argv[]) {
         free(rgb_str);
         switch (argv[1][1]) {
             case 'd':
-                printf("0d%d,%d,%d \n", rgb_col_stuff[0], rgb_col_stuff[1],
+                printf("0d%d,%d,%d", rgb_col_stuff[0], rgb_col_stuff[1],
                        rgb_col_stuff[2]);
                 break;
             case 'b':
+                printf("0b");
+                for (int i = 0; i < VALUE_FIELDS; ++i) {
+                    itoa(rgb_col_stuff[i], buffer, 2);
+                    size_t len = strlen(buffer);
+                    if (len < 8) {
+                        for (size_t x = 0; x < (8 - len); ++x) {
+                            printf("0");
+                        }
+                    }
+                    if (i == 2) {
+                        printf("%s", buffer);
+                    } else {
+                        printf("%s,", buffer);
+                    }
+                }
                 break;
             case 'x':
                 printf("0x");
                 sprintf(buffer, "%02x%02x%02x", rgb_col_stuff[0], rgb_col_stuff[1],
                        rgb_col_stuff[2]);
-                for (int i = 0; i < strlen(buffer); ++i) {
+                for (size_t i = 0; i < strlen(buffer); ++i) {
                     buffer[i] = toupper(buffer[i]);
                 }
-                printf("%s\n", buffer);
+                printf("%s", buffer);
                 break;
             case 'o':
                 sprintf(buffer, "0o%o,%o,%o", rgb_col_stuff[0], rgb_col_stuff[1],
                         rgb_col_stuff[2]);
-                printf("%s\n", buffer);
+                printf("%s", buffer);
                 break;
             case 'h':
                 usage(PRG_NAME);
@@ -70,8 +97,10 @@ main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
                 break;
         }
-        if (argc > 4 && !strncmp(argv[3], "-p", 2)) {
-            dpy_preview(rgb_col_stuff, argv[4]);
+        free(buffer);
+        if (argc >= 5 && !strncmp(argv[3], "-p", 2)) {
+            printf("\n");
+            dpy_color(rgb_col_stuff, argv[4]);
         }
     } else {
         usage(PRG_NAME);
@@ -84,7 +113,6 @@ rgb_val
 get_rgb_val(char* str) {
     char** s_strs = malloc(VALUE_FIELDS * sizeof(char*));
     rgb_val d_rgb = malloc(VALUE_FIELDS * sizeof(uint8_t));
-    char* delim = ",";
     for (int i = 0; i < VALUE_FIELDS; ++i) {
         s_strs[i] = malloc(8 * sizeof(char));
     }
@@ -96,16 +124,16 @@ get_rgb_val(char* str) {
     }
     str += 2;
     if (type == HEXADECIMAL) {
-        char* hex_str = strinsrt(str, *delim, 2);
-        char* hex_str2 = strinsrt(hex_str, *delim, 5);
-        s_strs = sep_str_fields(hex_str2, delim, VALUE_FIELDS, 8);
+        char* hex_str = strinsrt(str, *DELIM, 2);
+        char* hex_str2 = strinsrt(hex_str, *DELIM, 5);
+        s_strs = sep_str_fields(hex_str2, DELIM, VALUE_FIELDS, 8);
         for (int x = 0; x < VALUE_FIELDS; ++x) {
             d_rgb[x] = any_to_dec(s_strs[x], type);
         }
         free(hex_str);
         free(hex_str2);
     } else {
-        s_strs = sep_str_fields(str, delim, VALUE_FIELDS, 8);
+        s_strs = sep_str_fields(str, DELIM, VALUE_FIELDS, 8);
         for (int x = 0; x < VALUE_FIELDS; ++x) {
             d_rgb[x] = any_to_dec(s_strs[x], type);
         }
@@ -136,7 +164,11 @@ strinsrt(char* str, char c, size_t index) {
 }
 
 void 
-dpy_preview(rgb_val rgb_cols, char* str) {
+dpy_color(rgb_val rgb_cols, char* str) {
+    if (!isatty(fileno(stdout))) {
+        fprintf(stderr, "You must run the program inside of terminal!\n");
+        exit(EXIT_FAILURE);
+    }
     printf("fg: ");
     printf(ANSI_START_CODE "38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
     printf(" %s ", str);
@@ -199,8 +231,31 @@ void usage(char* prg_name) {
     fprintf(stdout, "-p option is optional\n");
     fprintf(stdout, "\t-p\twill print the str in the color you've passed earlier\n\n");
     fprintf(stdout, "Correct format of <rgb_value>:\n");
-    fprintf(stdout, "for -d -> 0dR_value,G_value,B_value (all values must be from 0 to 255)\n");
-    fprintf(stdout, "for -x -> 0xR_value,G_value,B_value (all values must be from 00 to ff/FF)\n");
-    fprintf(stdout, "for -o -> 0oR_value,G_value,B_value (all values must be from 0 to 377)\n");
-    fprintf(stdout, "for -b -> 0bR_value,G_value,B_value (all values must be 00000000 to 11111111)\n");
+    fprintf(stdout, "for -d -> 0dR_value%1$sG_value%1$sB_value (all values must be from 0 to 255)\n", DELIM);
+    fprintf(stdout, "for -x -> 0xR_value%1$sG_value%1$sB_value (all values must be from 00 to ff/FF)\n", DELIM);
+    fprintf(stdout, "for -o -> 0oR_value%1$sG_value%1$sB_value (all values must be from 0 to 377)\n", DELIM);
+    fprintf(stdout, "for -b -> 0bR_value%1$sG_value%1$sB_value (all values must be 00000000 to 11111111)\n", DELIM);
+}	
+
+char* 
+itoa(int value, char* result, int base) {
+    /* check that the base if valid */
+    if (base < 2 || base > 36) { *result = '\0'; return result; }
+    char* ptr = result, *ptr1 = result, tmp_char;
+    int tmp_value;
+    do {
+        tmp_value = value;
+        value /= base;
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+    } while (value);
+
+    /* Apply negative sign */
+    if (tmp_value < 0) *ptr++ = '-';
+    *ptr-- = '\0';
+    while (ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr--= *ptr1;
+        *ptr1++ = tmp_char;
+    }
+    return result;
 }
