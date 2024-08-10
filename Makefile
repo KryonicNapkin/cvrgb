@@ -7,12 +7,13 @@ all: cvrgb
 
 cvrgb: 	
 	$(CC) $(CFLAGS) -o $@ main.c converts.c 
+	chmod 755 $@
 
-install:
+install: all
 	cp cvrgb ${DESTDIR}/
 
 clean:
-	rm ./cvrgb
+	rm -f ./cvrgb
 
 uninstall:
 	rm -f ${DESTDIR}/cvrgb
