@@ -70,7 +70,7 @@ main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
                 break;
         }
-        if (!strncmp(argv[3], "-p", 2) && argv[4]) {
+        if (argc > 4 && !strncmp(argv[3], "-p", 2)) {
             display_preview(rgb_col_stuff, argv[4]);
         }
     } else {
@@ -138,13 +138,13 @@ strinsrt(char* str, char c, size_t index) {
 void 
 display_preview(rgb_val rgb_cols, char* str) {
     printf("fg: ");
-    printf("\x1b[38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
+    printf(ANSI_START_CODE"38;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
     printf("%s", str);
-    printf("\x1b[0m");
+    printf(ANSI_END_CODE);
     printf(" bg: ");
-    printf("\x1b[48;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
+    printf(ANSI_START_CODE"48;2;%d;%d;%dm", rgb_cols[0], rgb_cols[1], rgb_cols[2]);
     printf("%s", str);
-    printf("\x1b[0m\n");
+    printf(ANSI_END_CODE"\n");
 }
 
 char**
