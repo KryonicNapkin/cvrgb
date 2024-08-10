@@ -9,7 +9,7 @@ cvrgb:
 	$(CC) $(CFLAGS) -o $@ main.c converts.c 
 
 install:
-	cp -r cvrgb ${DESTDIR}/
+	cp cvrgb ${DESTDIR}/
 
 clean:
 	rm ./cvrgb
