@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "converts.h"
+#include "converts.h"                           /* Include converts.h library */
 
+/* Check for return value of errno and convert str to decimal */
 col_val 
 any_to_dec(char *str, c_rgb_t type) {
     col_val col_num = 0;
@@ -34,4 +35,19 @@ any_to_dec(char *str, c_rgb_t type) {
         return 0;
     }
     return col_num;
+}
+
+/* Converts decimal number to a binary string */
+bin_str 
+dec2bin(col_val dec) {
+    char *str_of_bin = malloc((8 + 1) * sizeof(char));
+    int i = 0;
+    while (dec > 0) {
+        int remainder = dec % 2;
+        dec /= 2;
+        sprintf(&str_of_bin[i], "%d", remainder);
+        i++;
+    }
+    str_of_bin[i] = '\0';
+    return str_of_bin;
 }
