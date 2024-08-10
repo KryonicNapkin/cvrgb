@@ -2,14 +2,16 @@
  * convert.h library includes types, struct and function needed for getting and
  * converting rgb to decimal
  */
-#if !defined(CONVERT_H)
-/* if CONVERT_H is not defined*/
-#define CONVERT_H                               /* define CONVERT_H library */
+
+#if !defined(CONVERTS_H)
+/* if CONVERTS_H is not defined*/
+#define CONVERTS_H                              /* define CONVERTS_H library */
 /* Specific int types for better compatibility and preventing overflowing */
 #include <stdint.h>
 
 typedef uint8_t col_val;                        /* define col_val as unsigned int */
 typedef col_val* rgb_val;                       /* define rgb_val array of unsigned ints */
+typedef char* bin_str;                          /* define string of 0's and 1's */
 
 typedef enum {
     ERROR = -1,
@@ -25,7 +27,8 @@ typedef enum {
  * b) convert rgb color variable from any type of numbering system to decimal
  */
 col_val any_to_dec(char* str, c_rgb_t type);
+bin_str dec2bin(uint8_t num);                   /* takes a decimal number and output 8bit binary number */
 /* return array of unsigned ints each one representing R, G and B values */
 rgb_val get_rgb_val(char* str);
 
-#endif                                          /* if CONVERT_H is not defined */
+#endif                                          /* if CONVERTS_H is not defined */
