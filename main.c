@@ -61,7 +61,7 @@ main(int argc, char* argv[]) {
         switch (argv[1][1]) {
             case 'd':
                 /* Print decimal representation of rgb value provided by user */
-                printf("0d%d,%d,%d", rgb_col_stuff[0], rgb_col_stuff[1],
+                printf("0d%d,%d,%d\n", rgb_col_stuff[0], rgb_col_stuff[1],
                        rgb_col_stuff[2]);
                 break;
             case 'b':
@@ -83,6 +83,7 @@ main(int argc, char* argv[]) {
                         printf("%s,", buffer);
                     }
                 }
+                printf("\n");
                 break;
             case 'x':
                 printf("0x");
@@ -94,11 +95,11 @@ main(int argc, char* argv[]) {
                     buffer[i] = toupper(buffer[i]);
                 }
                 /* Print rgb values */
-                printf("%s", buffer);
+                printf("%s\n", buffer);
                 break;
             case 'o':
                 /* Print octal representation of rgb values */
-                printf("0o%o,%o,%o", rgb_col_stuff[0], rgb_col_stuff[1],
+                printf("0o%o,%o,%o\n", rgb_col_stuff[0], rgb_col_stuff[1],
                         rgb_col_stuff[2]);
                 break;
             case 'h':
