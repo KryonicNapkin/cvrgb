@@ -88,7 +88,7 @@ main(int argc, char* argv[]) {
             case 'x':
                 printf("0x");
                 /* Get to buffer the hexadecimal representation of rgb values without 0x prefix */
-                sprintf(buffer, "%02x%02x%02x", rgb_col_stuff[0], rgb_col_stuff[1],
+                snprintf(buffer, sizeof(buffer), "%02x%02x%02x", rgb_col_stuff[0], rgb_col_stuff[1],
                        rgb_col_stuff[2]);
                 /* Convert values to upper */
                 for (size_t i = 0; i < strlen(buffer); ++i) {
