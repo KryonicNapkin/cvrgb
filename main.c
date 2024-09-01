@@ -9,8 +9,6 @@
 #include "converts.h"
 
 /* Constants definition */
-#define PRG_NAME        "cvrgb"
-
 #define VALUE_FIELDS    3
 #define DELIM           ","
 
@@ -44,7 +42,8 @@ void usage(char* prg_name);
 int
 main(int argc, char* argv[]) {
     rgb_val rgb_col_stuff;
-    char *buffer = malloc(64 * sizeof(char));
+    /* Allocating buffer for the char array for converted number */
+    char buffer[8];
     /* Checks if right number of arguments is passed to the program */
     if (argc >= 3 && argv[1][0] == '-' && argv[2]) {
         char* rgb_str = strdup(argv[2]);
@@ -104,7 +103,7 @@ main(int argc, char* argv[]) {
                 break;
             case 'h':
                 /* Print usage and exit */
-                usage(PRG_NAME);
+                usage(argv[0]);
                 exit(EXIT_SUCCESS);
                 break;
             default:
@@ -113,8 +112,6 @@ main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
                 break;
         }
-        /* Free buffer */
-        free(buffer);
         /* Checks if user asked for preview to be displayed and displays it */
         if (argc >= 5 && !strncmp(argv[3], "-p", 2)) {
             printf("\n");
@@ -122,7 +119,7 @@ main(int argc, char* argv[]) {
         }
     } else {
         /* Print usage if no or incorrect number of options are provided */
-        usage(PRG_NAME);
+        usage(argv[0]);
         return EXIT_FAILURE;
     }
     /* Exits the program */
@@ -280,7 +277,7 @@ void usage(char* prg_name) {
     fprintf(stdout, "\t-o\tto octal numbering system (base 8)\n");
     fprintf(stdout, "\t-b\tto binary numbering system (base 2)\n\n");
     fprintf(stdout, "-p option is optional\n");
-    fprintf(stdout, "\t-p\twill print the str in the color you've passed earlier\n\n");
+    fprintf(stdout, "\t-p <str>\twill print the <str> in the color you've passed earlier\n\n");
     fprintf(stdout, "Correct format of <rgb_value>:\n");
     fprintf(stdout, "for -d -> 0dR_value%1$sG_value%1$sB_value (all values must be from 0 to 255)\n", DELIM);
     fprintf(stdout, "for -x -> 0xR_value%1$sG_value%1$sB_value (all values must be from 00 to ff/FF)\n", DELIM);
