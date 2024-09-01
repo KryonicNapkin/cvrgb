@@ -24,10 +24,7 @@ any_to_dec(char *str, c_rgb_t type) {
         case BINARY:
             col_num = strtol(str, &endptr, 2);
             break;
-        case ERROR:
-            break;
         default:
-            return 0;
             break;
     }
     if (errno == EINVAL || str == endptr) {
