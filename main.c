@@ -1,7 +1,7 @@
 /* Libraries */
+#include <stdio.h>
 #include <ctype.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,6 +12,7 @@
 #define VALUE_FIELDS    3
 #define DELIM           ","
 
+#define NUM_TYPE_PREFIX 2
 #define DEC_STR_LEN_MIN 7 
 #define DEC_STR_LEN_MAX 13
 #define HEX_STR_LEN     8
@@ -22,24 +23,26 @@
 #define ANSI_START_CODE "\x1b["
 #define ANSI_END_CODE   "\x1b[0m"
 
-/* Function declarations */
+/* Function prototypes */
 /* Check type */
-c_rgb_t check_type(char* str);
+c_rgb_t get_type(char* str);
+/* returns 0 when the format is correct and -1 on error */
+int check_format(char* str, c_rgb_t type);
 /* Separate str to Red, Green and Blue fields */
 char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
 /* Insert delim into hexadecimal str to separate red, green and blue values */
 char* strinsrt(char* str, char c, size_t index);
-/* Stolen implementation of itoa() function from https://www.strudel.org.uk/itoa/ ver 0.4 */
-char* itoa(int value, char* result, int base);
 /* Display the actual color in your terminal */
 void dpy_color(uint8_t* rgb_cols, char* str);
 /* Free the rgb color char arrays */
 void free_cols_vals(char** cols_vals);
+/* Count the number of times a char c is in string str */
+int strcchar(const char* str, char c);
 /* Usage function */
 void usage(char* prg_name);
 
 /* Main */
-int
+int 
 main(int argc, char* argv[]) {
     rgb_val rgb_col_stuff;
     /* Allocating buffer for the char array for converted number */
@@ -64,25 +67,8 @@ main(int argc, char* argv[]) {
                        rgb_col_stuff[2]);
                 break;
             case 'b':
-                printf("0b");
-                for (int i = 0; i < VALUE_FIELDS; ++i) {
-                    /* Convert one of the rgb value to binary */
-                    itoa(rgb_col_stuff[i], buffer, 2);
-                    size_t len = strlen(buffer);
-                    /* Add zeros to the left of the number to match the format in usage */
-                    if (len < 8) {
-                        for (size_t x = 0; x < (8 - len); ++x) {
-                            printf("0");
-                        }
-                    }
-                    /* Print the value with ',' to separate the values */
-                    if (i == 2) {
-                        printf("%s", buffer);
-                    } else {
-                        printf("%s,", buffer);
-                    }
-                }
-                printf("\n");
+                /* Print binary representation of rgb value */
+                printf("0b%08b,%08b,%08b\n", rgb_col_stuff[0], rgb_col_stuff[1], rgb_col_stuff[2]);
                 break;
             case 'x':
                 printf("0x");
@@ -91,7 +77,7 @@ main(int argc, char* argv[]) {
                        rgb_col_stuff[2]);
                 /* Convert values to upper */
                 for (size_t i = 0; i < strlen(buffer); ++i) {
-                    buffer[i] = toupper(buffer[i]);
+                    buffer[i] = (char)toupper(buffer[i]);
                 }
                 /* Print rgb values */
                 printf("%s\n", buffer);
@@ -136,7 +122,7 @@ get_rgb_val(char* str) {
         s_strs[i] = malloc(8 * sizeof(char));
     }
     /* Get type of passed rgb value from user and checks if it's valid */
-    c_rgb_t type = check_type(str);
+    c_rgb_t type = get_type(str);
     if (type == ERROR) { 
         /* If not than free allocated items and return NULL */
         free_cols_vals(s_strs);
@@ -157,7 +143,7 @@ get_rgb_val(char* str) {
         char* hex_str2 = strinsrt(hex_str, *DELIM, 5);
         s_strs = sep_str_fields(hex_str2, DELIM, VALUE_FIELDS, 8);
         for (int x = 0; x < VALUE_FIELDS; ++x) {
-            d_rgb[x] = any_to_dec(s_strs[x], type);
+            d_rgb[x] = (col_val)any_to_dec(s_strs[x], type);
         }
         /* Free hex_strs */
         free(hex_str);
@@ -166,7 +152,7 @@ get_rgb_val(char* str) {
         /* For any other type just separate the values and convert them to decimal */
         s_strs = sep_str_fields(str, DELIM, VALUE_FIELDS, 8);
         for (int x = 0; x < VALUE_FIELDS; ++x) {
-            d_rgb[x] = any_to_dec(s_strs[x], type);
+            d_rgb[x] = (col_val)any_to_dec(s_strs[x], type);
         }
     }
     /* Free the 2d array and return pointer to uint8_t*/
@@ -208,7 +194,7 @@ strinsrt(char* str, char c, size_t index) {
 void 
 dpy_color(rgb_val rgb_cols, char* str) {
     /* Checks if program is running in terminal */
-    if (!isatty(fileno(stdout))) {
+    if (!isatty(STDOUT_FILENO)) {
         fprintf(stderr, "You must run the program inside of terminal!\n");
         exit(EXIT_FAILURE);
     }
@@ -241,19 +227,59 @@ sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size) {
     return str_fields;
 }
 
+/* Count the number of times char c is found in str */
+int     
+strcchar(const char* str, char c) {
+    int count = 0;
+    while (*str != '\0') {
+        if (*str == c) {
+            count++;
+        }
+        str++;
+    }
+    return count;
+}
+
 /* Return type of parsed rgb value */
 c_rgb_t 
-check_type(char* str) {
+get_type(char* str) {
     size_t len = strlen(str);
-    if (!strncmp(str, "0x", 2) && len == HEX_STR_LEN) {   /* len 10 -> 0x1424fe */
+    if (!strncmp(str, "0x", NUM_TYPE_PREFIX) && len == HEX_STR_LEN) {   /* len 10 -> 0x1424fe */
+        for (size_t i = NUM_TYPE_PREFIX; i < len; ++i) {
+            if (!(str[i] >= '0' && str[i] <= '9') && 
+                !(str[i] >= 'a' && str[i] <= 'f') &&
+                !(str[i] >= 'A' && str[i] <= 'F')) {
+                return ERROR;
+            }
+        }
         return HEXADECIMAL;
-    } else if (!strncmp(str, "0o", 2) && len >= OCT_STR_LEN_MIN && len <= OCT_STR_LEN_MAX) {  /* len =7 - =13 -> 0o1,3,4 - 0o102,104,203 */
+    } else if (!strncmp(str, "0o", NUM_TYPE_PREFIX) && len >= OCT_STR_LEN_MIN && len <= OCT_STR_LEN_MAX) {  /* len =7 - =13 -> 0o1,3,4 - 0o102,104,203 */
+        goto check_delim_count;
+        if (!(any_to_dec(str += NUM_TYPE_PREFIX, OCTAL) >= 0 && 
+            any_to_dec(str += NUM_TYPE_PREFIX, OCTAL) <= 255)) {
+            return ERROR;
+        }
         return OCTAL;
-    } else if (!strncmp(str, "0d", 2) && len >= DEC_STR_LEN_MIN && len <= DEC_STR_LEN_MAX) {   /*  len =7 - =12 -> 0d1,2,3 - 0d123,230,124 */
+    } else if (!strncmp(str, "0d", NUM_TYPE_PREFIX) && len >= DEC_STR_LEN_MIN && len <= DEC_STR_LEN_MAX) {   /*  len =7 - =12 -> 0d1,2,3 - 0d123,230,124 */
+        goto check_delim_count;
+        if (!(any_to_dec(str += NUM_TYPE_PREFIX, DECIMAL) >= 0 && 
+            any_to_dec(str += NUM_TYPE_PREFIX, DECIMAL) <= 255)) {
+            return ERROR;
+        }
         return DECIMAL;
-    } else if (!strncmp(str, "0b", 2) && len == BIN_STR_LEN) { /* len == 28 -> 0b01011010,10110101,10100101*/
+    } else if (!strncmp(str, "0b", NUM_TYPE_PREFIX) && len == BIN_STR_LEN) { /* len == 28 -> 0b01011010,10110101,10100101*/
+        goto check_delim_count;
+        if (!(any_to_dec(str += NUM_TYPE_PREFIX, BINARY) >= 0 && 
+            any_to_dec(str += NUM_TYPE_PREFIX, BINARY) <= 255)) {
+            return ERROR;
+        }
         return BINARY;
     }
+
+    check_delim_count:
+        if (strcchar(str, *DELIM) != 3) {
+            return ERROR;
+        }
     return ERROR;
 }
 
@@ -267,7 +293,8 @@ free_cols_vals(char** cols_vals) {
 }
 
 /* Print usage */
-void usage(char* prg_name) {
+void
+usage(char* prg_name) {
     fprintf(stdout, "usage: %s [OPTIONS] <rgb_value> (-p) <str>\n", prg_name);
     fprintf(stdout, "OPTIONS specify to which type of numbering system you want to convert the rgb_value\n\n");
     fprintf(stdout, "OPTIONS:\n");
@@ -279,31 +306,8 @@ void usage(char* prg_name) {
     fprintf(stdout, "-p option is optional\n");
     fprintf(stdout, "\t-p <str>\twill print the <str> in the color you've passed earlier\n\n");
     fprintf(stdout, "Correct format of <rgb_value>:\n");
-    fprintf(stdout, "for -d -> 0dR_value%1$sG_value%1$sB_value (all values must be from 0 to 255)\n", DELIM);
-    fprintf(stdout, "for -x -> 0xR_value%1$sG_value%1$sB_value (all values must be from 00 to ff/FF)\n", DELIM);
-    fprintf(stdout, "for -o -> 0oR_value%1$sG_value%1$sB_value (all values must be from 0 to 377)\n", DELIM);
-    fprintf(stdout, "for -b -> 0bR_value%1$sG_value%1$sB_value (all values must be 00000000 to 11111111)\n", DELIM);
+    fprintf(stdout, "for -d -> 0dR_value%sG_value%sB_value (all values must be from 0 to 255)\n", DELIM, DELIM);
+    fprintf(stdout, "for -x -> 0xR_value%sG_value%sB_value (all values must be from 00 to ff/FF)\n", DELIM, DELIM);
+    fprintf(stdout, "for -o -> 0oR_value%sG_value%sB_value (all values must be from 0 to 377)\n", DELIM, DELIM);
+    fprintf(stdout, "for -b -> 0bR_value%sG_value%sB_value (all values must be 00000000 to 11111111)\n", DELIM, DELIM);
 }	
-
-char* 
-itoa(int value, char* result, int base) {
-    /* check that the base if valid */
-    if (base < 2 || base > 36) { *result = '\0'; return result; }
-    char* ptr = result, *ptr1 = result, tmp_char;
-    int tmp_value;
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-    } while (value);
-
-    /* Apply negative sign */
-    if (tmp_value < 0) *ptr++ = '-';
-    *ptr-- = '\0';
-    while (ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr--= *ptr1;
-        *ptr1++ = tmp_char;
-    }
-    return result;
-}
