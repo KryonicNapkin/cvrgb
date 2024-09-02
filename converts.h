@@ -25,7 +25,7 @@ typedef enum {
  * a) checks if string you entered is valid with the type you've provided
  * b) convert rgb color variable from any type of numbering system to decimal
  */
-col_val any_to_dec(char* str, c_rgb_t type);
+int64_t any_to_dec(char* str, c_rgb_t type);
 /* return array of unsigned ints each one representing R, G and B values */
 rgb_val get_rgb_val(char* str);
 
