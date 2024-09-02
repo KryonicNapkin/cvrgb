@@ -6,11 +6,10 @@
 #include "converts.h"                           /* Include converts.h library */
 
 /* Check for return value of errno and convert str to decimal */
-col_val 
+int64_t
 any_to_dec(char *str, c_rgb_t type) {
-    col_val col_num = 0;
+    int64_t col_num = -1;
     char *endptr = NULL;
-    errno = 0;
     switch (type) {
         case DECIMAL:
             col_num = strtol(str, &endptr, 10);
@@ -29,7 +28,7 @@ any_to_dec(char *str, c_rgb_t type) {
     }
     if (errno == EINVAL || str == endptr) {
         fprintf(stderr, "Error occured when converting %s to the type %d\n", str, type);
-        return 0;
+        return -1;
     }
     return col_num;
 }
