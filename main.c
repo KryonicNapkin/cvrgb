@@ -26,8 +26,6 @@
 /* Function prototypes */
 /* Check type */
 c_rgb_t get_type(char* str);
-/* returns 0 when the format is correct and -1 on error */
-int check_format(char* str, c_rgb_t type);
 /* Separate str to Red, Green and Blue fields */
 char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
 /* Insert delim into hexadecimal str to separate red, green and blue values */
