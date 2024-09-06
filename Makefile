@@ -1,5 +1,5 @@
 CC 		= gcc
-CFLAGS  = -std=c23 -g -Wall -Wextra -Wpedantic -Wconversion -lm 
+CFLAGS	= -std=c23 -g -Wall -Wextra -Wpedantic -Wconversion -lm 
 
 include config.mk
 
