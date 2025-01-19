@@ -7,7 +7,7 @@
 
 /* Check for return value of errno and convert str to decimal */
 int64_t
-any_to_dec(char *str, c_rgb_t type) {
+any_to_dec(const char *str, c_rgb_t type) {
     int64_t col_num = -1;
     char *endptr = NULL;
     switch (type) {
