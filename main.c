@@ -5,6 +5,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
+
+/* 
+ * FIX: conversion from decimal to any is not working
+ * TODO: make color a structure instead of pointer
+ */
 
 #include "converts.h"
 
@@ -24,8 +30,8 @@
 #define ANSI_END_CODE   "\x1b[0m"
 
 /* Function prototypes */
-/* Check type */
-c_rgb_t get_type(char* str);
+/* Get type and check if the string's format is correct */
+bool check_format(const char* str, c_rgb_t* type);
 /* Separate str to Red, Green and Blue fields */
 char** sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size);
 /* Insert delim into hexadecimal str to separate red, green and blue values */
@@ -34,8 +40,8 @@ char* strinsrt(char* str, char c, size_t index);
 void dpy_color(uint8_t* rgb_cols, char* str);
 /* Free the rgb color char arrays */
 void free_cols_vals(char** cols_vals);
-/* Count the number of times a char c is in string str */
-int strcchar(const char* str, char c);
+/* Function that checks if you inserted enought delimiters */
+bool check_delim_count(const char* str, char c, int count);
 /* Usage function */
 void usage(char* prg_name);
 
@@ -120,18 +126,18 @@ get_rgb_val(char* str) {
         s_strs[i] = malloc(8 * sizeof(char));
     }
     /* Get type of passed rgb value from user and checks if it's valid */
-    c_rgb_t type = get_type(str);
-    if (type == ERROR) { 
-        /* If not than free allocated items and return NULL */
+    c_rgb_t type;
+    bool ret = check_format(str, &type);
+    if (!ret && type == ERROR) {
         free_cols_vals(s_strs);
         free(d_rgb);
         return NULL; 
     }
+    str += 2;
     /* In the correct format user inputs string of chars with prefix of specified type 
      * like this '0d123,14,45' so we need to move the pointer to this strings by 2 to 
      * get '123,14,45'
      */
-    str += 2;
     if (type == HEXADECIMAL) {
         /* Checks if parsed string is of type HEXADECIMAL and adds separators to separate 
          * individual R,G,B values and returns 2d array of them and converts any type
@@ -225,60 +231,72 @@ sep_str_fields(char* str, char* delim, size_t nmemb, size_t memb_size) {
     return str_fields;
 }
 
-/* Count the number of times char c is found in str */
-int     
-strcchar(const char* str, char c) {
-    int count = 0;
+/* Function that checks if you inserted enought delimiters */
+bool     
+check_delim_count(const char* str, char c, int count) {
+    int n = 0;
+    if (count < 0) return false;
     while (*str != '\0') {
         if (*str == c) {
-            count++;
+            n++;
         }
         str++;
     }
-    return count;
+    if (n == VALUE_FIELDS-1) return true;
+
+    return false;
 }
 
-/* Return type of parsed rgb value */
-c_rgb_t 
-get_type(char* str) {
+/* Get type and check if the string's format is correct */
+bool 
+check_format(const char* str, c_rgb_t* type) {
     size_t len = strlen(str);
-    if (!strncmp(str, "0x", NUM_TYPE_PREFIX) && len == HEX_STR_LEN) {   /* len 10 -> 0x1424fe */
-        for (size_t i = NUM_TYPE_PREFIX; i < len; ++i) {
-            if (!(str[i] >= '0' && str[i] <= '9') && 
-                !(str[i] >= 'a' && str[i] <= 'f') &&
-                !(str[i] >= 'A' && str[i] <= 'F')) {
-                return ERROR;
+    char* nstr = strdup(str);
+    char* new_str = malloc(len-VALUE_FIELDS+1);
+    memcpy(new_str, str+(VALUE_FIELDS-1), len-VALUE_FIELDS+1); 
+    bool delim_format = check_delim_count(new_str, *DELIM, VALUE_FIELDS-1);
+
+    *type = ERROR;
+
+    if (!delim_format) return false;
+
+    char** s_strs = sep_str_fields(new_str, DELIM, VALUE_FIELDS, 8);
+    if (!strncmp(nstr, "0x", NUM_TYPE_PREFIX) && len == HEX_STR_LEN) {   /* len 10 -> 0x1424fe */
+        *type = HEXADECIMAL;
+    } else if (!strncmp(nstr, "0o", NUM_TYPE_PREFIX) && len >= OCT_STR_LEN_MIN && len <= OCT_STR_LEN_MAX) {  /* len =7 - =13 -> 0o1,3,4 - 0o102,104,203 */
+        *type = OCTAL;
+    } else if (!strncmp(nstr, "0d", NUM_TYPE_PREFIX) && len >= DEC_STR_LEN_MIN && len <= DEC_STR_LEN_MAX) {   /*  len =7 - =12 -> 0d1,2,3 - 0d123,230,124 */
+        *type = DECIMAL;
+    } else if (!strncmp(nstr, "0b", NUM_TYPE_PREFIX) && len == BIN_STR_LEN) { /* len == 28 -> 0b01011010,10110101,10100101*/
+        *type = BINARY;
+    } else {
+        free(new_str);
+        free(nstr);
+        return false;
+    }
+    if (*type != HEXADECIMAL) {
+        for (int x = 0; x < VALUE_FIELDS; ++x) {
+            int64_t num = any_to_dec(s_strs[x], *type);
+            free(s_strs[x]);
+            if (num == -1 || 
+                ((num < 0 || num > 255) && *type == DECIMAL) || 
+                ((num < 0 || num > 377) && *type == OCTAL) || 
+                ((num < 0b00000000 || num > 0b01111111) && *type == BINARY)) {
+                return false;
             }
         }
-        return HEXADECIMAL;
-    } else if (!strncmp(str, "0o", NUM_TYPE_PREFIX) && len >= OCT_STR_LEN_MIN && len <= OCT_STR_LEN_MAX) {  /* len =7 - =13 -> 0o1,3,4 - 0o102,104,203 */
-        goto check_delim_count;
-        if (!(any_to_dec(str += NUM_TYPE_PREFIX, OCTAL) >= 0 && 
-            any_to_dec(str += NUM_TYPE_PREFIX, OCTAL) <= 255)) {
-            return ERROR;
+    } else {
+        for (size_t i = 0; i < strlen(nstr); ++i) {
+            if ((nstr[i] < '0' || nstr[i] > '9') && 
+                (nstr[i] < 'A' || nstr[i] > 'F') && 
+                (nstr[i] < 'a' || nstr[i] > 'f')) {
+                return false;
+            }
         }
-        return OCTAL;
-    } else if (!strncmp(str, "0d", NUM_TYPE_PREFIX) && len >= DEC_STR_LEN_MIN && len <= DEC_STR_LEN_MAX) {   /*  len =7 - =12 -> 0d1,2,3 - 0d123,230,124 */
-        goto check_delim_count;
-        if (!(any_to_dec(str += NUM_TYPE_PREFIX, DECIMAL) >= 0 && 
-            any_to_dec(str += NUM_TYPE_PREFIX, DECIMAL) <= 255)) {
-            return ERROR;
-        }
-        return DECIMAL;
-    } else if (!strncmp(str, "0b", NUM_TYPE_PREFIX) && len == BIN_STR_LEN) { /* len == 28 -> 0b01011010,10110101,10100101*/
-        goto check_delim_count;
-        if (!(any_to_dec(str += NUM_TYPE_PREFIX, BINARY) >= 0 && 
-            any_to_dec(str += NUM_TYPE_PREFIX, BINARY) <= 255)) {
-            return ERROR;
-        }
-        return BINARY;
-    }
-
-    check_delim_count:
-        if (strcchar(str, *DELIM) != 3) {
-            return ERROR;
-        }
-    return ERROR;
+    } 
+    free(new_str);
+    free(nstr);
+    return true;
 }
 
 void 
