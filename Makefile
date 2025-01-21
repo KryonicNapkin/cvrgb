@@ -5,8 +5,8 @@ include config.mk
 
 all: cvrgb
 
-cvrgb: 	
-	$(CC) $(CFLAGS) -o $@ main.c converts.c 
+cvrgb: main.c converts.c
+	$(CC) $(CFLAGS) -o $@ $^ 
 	chmod 755 $@
 
 install: all
